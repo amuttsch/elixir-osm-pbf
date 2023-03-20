@@ -1,0 +1,12 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+elixir_osm-*.tar
+/tmp/
+.DS_Store
+*.pbf
+!test/sample.pbf
