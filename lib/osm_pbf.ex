@@ -28,7 +28,10 @@ defmodule OsmPbf do
     )
     |> Stream.map(fn {:ok, l} -> l end)
     |> Stream.filter(fn {status, _} -> status == :ok end)
-    |> Stream.flat_map(fn {:ok, l} -> l end)
+    |> Stream.flat_map(fn {:ok, l} ->
+      OsmPbf.Status.increment_read_elements(length(l))
+      l
+    end)
   end
 
   def readBlob(file) do

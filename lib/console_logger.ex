@@ -23,8 +23,16 @@ defmodule OsmPbf.ConsoleLogger do
     if status.total_size > 0 and status.state == :running do
       p = Float.round(status.read_size / status.total_size * 100, 2)
 
+      elements =
+        status.read_elements
+        |> Integer.to_charlist()
+        |> Enum.reverse()
+        |> Enum.chunk_every(3)
+        |> Enum.join(".")
+        |> String.reverse()
+
       IO.write(
-        "#{Sizeable.filesize(status.read_size)} / #{Sizeable.filesize(status.total_size)} bytes read (#{p}%)\r"
+        "#{Sizeable.filesize(status.read_size)} / #{Sizeable.filesize(status.total_size)} bytes read (#{p}%) - #{elements} elements\r"
       )
     end
 
