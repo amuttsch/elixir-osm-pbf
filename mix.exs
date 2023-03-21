@@ -21,7 +21,9 @@ defmodule OsmPbf.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:protobuf, "~> 0.10.0"}
+      {:protobuf, "~> 0.10.0"},
+      {:sizeable, "~> 1.0"},
+      {:benchee, "~> 1.0", only: :dev}
     ]
   end
 end
