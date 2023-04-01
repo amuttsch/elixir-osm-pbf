@@ -150,7 +150,12 @@ defmodule OsmPbf do
     Enum.map(relations, fn relation ->
       kv = buildTagMap(block, {relation.keys, relation.vals})
 
-      members = Enum.zip([relation.roles_sid, relation.memids, relation.types])
+      members =
+        Enum.zip([relation.roles_sid, relation.memids, relation.types])
+        |> Enum.map_reduce(0, fn {sid, memid, type}, offset ->
+          memid = memid + offset
+          {{sid, memid, type}, memid}
+        end)
 
       {:relation, relation.id, members, kv}
     end)
