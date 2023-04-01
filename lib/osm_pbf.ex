@@ -89,6 +89,16 @@ defmodule OsmPbf do
         } ->
           parse({:ways, block, ways})
 
+        %OSMPBF.PrimitiveGroup{
+          nodes: [],
+          dense: nil,
+          ways: [],
+          relations: relations,
+          changesets: [],
+          __unknown_fields__: []
+        } ->
+          parse({:relations, block, relations})
+
         _ ->
           []
       end
@@ -107,8 +117,10 @@ defmodule OsmPbf do
         lat = lat_offset + lat
         lon = lon_offset + lon
 
-        kv = Enum.map(kv, fn e -> Enum.fetch!(block.stringtable.s, e) end)
-        kv = Enum.chunk_every(kv, 2)
+        kv =
+          Enum.map(kv, fn e -> Enum.fetch!(block.stringtable.s, e) end)
+          |> Enum.chunk_every(2)
+          |> Enum.into(%{}, fn [a, b] -> {a, b} end)
 
         {{:node, id, calculate_lat(lat, block.lat_offset, block.granularity),
           calculate_lon(lon, block.lon_offset, block.granularity), kv}, {id, lat, lon}}
@@ -119,11 +131,7 @@ defmodule OsmPbf do
 
   defp parse({:ways, block, ways}) do
     Enum.map(ways, fn way ->
-      kv =
-        Enum.zip([way.keys, way.vals])
-        |> Enum.map(fn {k, v} ->
-          [Enum.fetch!(block.stringtable.s, k), Enum.fetch!(block.stringtable.s, v)]
-        end)
+      kv = buildTagMap(block, {way.keys, way.vals})
 
       coords =
         Enum.zip([way.lat, way.lon])
@@ -136,6 +144,24 @@ defmodule OsmPbf do
 
       {:way, way.id, way.refs, coords, kv}
     end)
+  end
+
+  defp parse({:relations, block, relations}) do
+    Enum.map(relations, fn relation ->
+      kv = buildTagMap(block, {relation.keys, relation.vals})
+
+      members = Enum.zip([relation.roles_sid, relation.memids, relation.types])
+
+      {:relation, relation.id, members, kv}
+    end)
+  end
+
+  defp buildTagMap(block, {keys, vals}) do
+    Enum.zip([keys, vals])
+    |> Enum.map(fn {k, v} ->
+      [Enum.fetch!(block.stringtable.s, k), Enum.fetch!(block.stringtable.s, v)]
+    end)
+    |> Enum.into(%{}, fn [k, v] -> {k, v} end)
   end
 
   defp chunk_key_val(e, acc) do
