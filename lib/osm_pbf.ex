@@ -1,19 +1,11 @@
 defmodule OsmPbf do
   require Logger
 
-  def stream(filename) do
-    stat = File.stat!(filename)
-    OsmPbf.Status.reset()
-    OsmPbf.Status.start()
-    OsmPbf.Status.set_total_size(stat.size)
-
+  def stream(filename, opts \\ []) do
     Stream.resource(
       fn -> File.open!(filename) end,
       fn file -> readBlob(file) end,
-      fn file ->
-        File.close(file)
-        OsmPbf.Status.finish()
-      end
+      fn file -> File.close(file) end
     )
     |> Task.async_stream(
       fn x ->
@@ -28,10 +20,7 @@ defmodule OsmPbf do
     )
     |> Stream.map(fn {:ok, l} -> l end)
     |> Stream.filter(fn {status, _} -> status == :ok end)
-    |> Stream.flat_map(fn {:ok, l} ->
-      OsmPbf.Status.increment_read_elements(length(l))
-      l
-    end)
+    |> Stream.flat_map(fn {:ok, l} -> l end)
   end
 
   def readBlob(file) do
@@ -40,9 +29,6 @@ defmodule OsmPbf do
          blob_header_raw <- IO.binread(file, len),
          blob_header <- OSMPBF.BlobHeader.decode(blob_header_raw),
          blob_raw <- IO.binread(file, blob_header.datasize) do
-      read = 4 + len + blob_header.datasize
-      OsmPbf.Status.increment_read_size(read)
-
       {[{blob_header, blob_raw}], file}
     else
       _ -> {:halt, file}
