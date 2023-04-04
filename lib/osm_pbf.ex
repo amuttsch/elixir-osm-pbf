@@ -1,24 +1,20 @@
 defmodule OsmPbf do
   require Logger
 
-  def stream(filename, opts \\ []) do
+  def stream(filename) do
     Stream.resource(
       fn -> File.open!(filename) end,
       fn file -> readBlob(file) end,
       fn file -> File.close(file) end
     )
-    |> Task.async_stream(
-      fn x ->
-        with blob <- parseBlob(x),
-             {:body, body} <- blob do
-          {:ok, parsePrimitiveBlock(body)}
-        else
-          _ -> {:ignore, :unused}
-        end
-      end,
-      ordered: true
-    )
-    |> Stream.map(fn {:ok, l} -> l end)
+    |> Stream.map(fn x ->
+      with blob <- parseBlob(x),
+           {:body, body} <- blob do
+        {:ok, parsePrimitiveBlock(body)}
+      else
+        _ -> {:ignore, :unused}
+      end
+    end)
     |> Stream.filter(fn {status, _} -> status == :ok end)
     |> Stream.flat_map(fn {:ok, l} -> l end)
   end
