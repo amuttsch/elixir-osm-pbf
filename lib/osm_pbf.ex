@@ -7,14 +7,18 @@ defmodule OsmPbf do
       fn file -> readBlob(file) end,
       fn file -> File.close(file) end
     )
-    |> Stream.map(fn x ->
-      with blob <- parseBlob(x),
-           {:body, body} <- blob do
-        {:ok, parsePrimitiveBlock(body)}
-      else
-        _ -> {:ignore, :unused}
-      end
-    end)
+    |> Task.async_stream(
+      fn x ->
+        with blob <- parseBlob(x),
+             {:body, body} <- blob do
+          {:ok, parsePrimitiveBlock(body)}
+        else
+          _ -> {:ignore, :unused}
+        end
+      end,
+      ordered: true
+    )
+    |> Stream.map(fn {:ok, l} -> l end)
     |> Stream.filter(fn {status, _} -> status == :ok end)
     |> Stream.flat_map(fn {:ok, l} -> l end)
   end
