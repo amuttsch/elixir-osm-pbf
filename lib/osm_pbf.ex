@@ -16,7 +16,8 @@ defmodule OsmPbf do
           _ -> {:ignore, :unused}
         end
       end,
-      ordered: true
+      ordered: true,
+      timeout: :infinity
     )
     |> Stream.map(fn {:ok, l} -> l end)
     |> Stream.filter(fn {status, _} -> status == :ok end)
